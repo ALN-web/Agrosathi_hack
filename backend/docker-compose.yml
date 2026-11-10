@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agrosathi-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_secure_pass
+      POSTGRES_DB: agrosathi_production
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d agrosathi_production"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agrosathi-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: agrosathi-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agrosathi-net
+
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+    container_name: agrosathi-api-gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      DATABASE_URL: "postgresql://postgres:postgres_secure_pass@postgres:5432/agrosathi_production?schema=public"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - agrosathi-net
+
+  ai-crop-prediction:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.python
+    container_name: agrosathi-ai-crop-prediction
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - agrosathi-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: agrosathi-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - gateway
+      - ai-crop-prediction
+    networks:
+      - agrosathi-net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  agrosathi-net:
+    driver: bridge

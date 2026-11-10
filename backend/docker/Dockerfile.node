@@ -1,0 +1,44 @@
+# ========================================================
+# ENTERPRISE MULTI-STAGE NODE.JS DOCKERFILE (AGROSATHI)
+# ========================================================
+
+# Stage 1: Build Stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root monorepo config
+COPY package.json package-lock.json* tsconfig.base.json ./
+
+# Copy packages and database workspace
+COPY packages/ ./packages/
+COPY database/ ./database/
+COPY apps/ ./apps/
+
+# Install dependencies cleanly across workspaces
+RUN npm install
+
+# Generate Prisma Client & compile TypeScript across workspaces
+RUN npm run build --if-present
+
+# Stage 2: Production Runner
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Non-root secure user execution
+RUN addgroup --system --gid 1001 agrosathi && \
+    adduser --system --uid 1001 agrosathi
+
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/database ./database
+COPY --from=builder /app/apps ./apps
+
+USER agrosathi
+
+EXPOSE 8000 8001 8002 8003 8004 8005
+
+CMD ["node", "apps/gateway/dist/server.js"]

@@ -1,0 +1,16 @@
+import { Request, Response, NextFunction } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Attaches a unique UUID request identifier to every request & response header
+ * Enables tracing across API Gateway and downstream microservices.
+ */
+export function requestIdMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const existingId = req.headers['x-request-id'] as string;
+  const requestId = existingId || uuidv4();
+
+  req.headers['x-request-id'] = requestId;
+  res.setHeader('X-Request-Id', requestId);
+
+  next();
+}

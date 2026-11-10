@@ -1,0 +1,31 @@
+# ========================================================
+# ENTERPRISE MULTI-STAGE PYTHON FASTAPI DOCKERFILE
+# ========================================================
+
+# Stage 1: Build & Wheels
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+COPY ai/requirements.txt ./
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Stage 2: Production Runtime
+FROM python:3.11-slim AS runner
+
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN addgroup --system agrosathi && adduser --system --group agrosathi
+
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
+
+COPY ai/ ./ai/
+
+USER agrosathi
+
+EXPOSE 8080 8081 8082 8083
+
+CMD ["python", "-m", "uvicorn", "ai.crop-prediction.main:app", "--host", "0.0.0.0", "--port", "8080"]

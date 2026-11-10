@@ -1,0 +1,15 @@
+// ============================================================================
+// AGROSATHI ENTERPRISE PRISMA DATABASE SCHEMA FOUNDATION
+// ============================================================================
+// Database: PostgreSQL Enterprise Cluster
+// Note: Only connection configuration is initialized per architectural spec.
+// Future domain entities (Users, Farms, Crops, SoilLogs, WeatherLogs) plug here.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
