@@ -193,7 +193,9 @@ AgroSathi is **free for farmers**. Revenue comes from partners who benefit: subs
 
 ## Team
 
-**[Team name]** – [Member names]
+- **Anjankumar LN**
+- **Deekshith K**
+- **Gagandeep G**
 
 ---
 
